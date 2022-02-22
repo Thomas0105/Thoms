@@ -1,0 +1,6 @@
+/build
+/dist
+/plugin.so
+/.vscode
+/pictogram.code-workspace
+/tasks.json
