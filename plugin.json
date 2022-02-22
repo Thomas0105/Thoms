@@ -1,0 +1,28 @@
+{
+  "slug": "Thoms",
+  "name": "Thom's",
+  "version": "1.0.0",
+  "license": "GPL-3.0-or-later",
+  "brand": "Thom's",
+  "author": "Thomas Michels",
+  "authorEmail": "thommichels@web.de",
+  "authorUrl": "",
+  "pluginUrl": "",
+  "manualUrl": "",
+  "sourceUrl": "",
+  "donateUrl": "",
+  "changelogUrl": "",
+  "modules": [
+    {
+      "slug": "Pictogram",
+      "name": "Pictogram",
+      "description": "",
+      "tags": [
+        "Sequencer",
+        "Controller",
+        "Visual",
+        "Sampler"
+      ]
+    }
+  ]
+}
