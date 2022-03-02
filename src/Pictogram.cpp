@@ -59,8 +59,10 @@ struct Pictogram : Module
   dsp::SchmittTrigger sTrigReset{};
   thm::ColorSpace clrSpace{};
   thm::RGBData rgbData{};
+  thm::Rect slctView{};
   bool loading{false};
-  bool hasNewImage{false};
+  bool hasLoadedImage{false};
+  bool existJsonData{false};
   unsigned image_width{};
   unsigned image_height{};
 
@@ -114,9 +116,8 @@ struct Pictogram : Module
     { //Todo: error logging
       std::cout << "error " << error << ": " << lodepng_error_text(error) << std::endl;
       imagePath.clear();
-      rgbData.clear();
       loading = false;
-      hasNewImage = false;
+      hasLoadedImage = false;
       return;
     }
     //DEBUG(string::f("ThmImageSize: %d", (int)image.size()).c_str());
@@ -133,7 +134,7 @@ struct Pictogram : Module
     rgbData.resetPosition(image_width);
     imagePath = path;
     loading = false;
-    hasNewImage = true;
+    hasLoadedImage = true;
   }
   json_t *dataToJson() override
   {
@@ -143,6 +144,13 @@ struct Pictogram : Module
     json_object_set_new(rootJ, "SelBoxY", json_real(rgbData.selectBox.y));
     json_object_set_new(rootJ, "SelBoxW", json_real(rgbData.selectBox.w));
     json_object_set_new(rootJ, "SelBoxH", json_real(rgbData.selectBox.h));
+
+    json_object_set_new(rootJ, "SelectViewX", json_real(slctView.x));
+    json_object_set_new(rootJ, "SelectViewY", json_real(slctView.y));
+    json_object_set_new(rootJ, "SelectViewW", json_real(slctView.w));
+    json_object_set_new(rootJ, "SelectViewH", json_real(slctView.h));
+
+    json_object_set_new(rootJ, "existJsonData", json_boolean(existJsonData));
     return rootJ;
   }
   void dataFromJson(json_t *rootJ) override
@@ -162,17 +170,35 @@ struct Pictogram : Module
     auto SelBoxH = json_object_get(rootJ, "SelBoxH");
     if (SelBoxH)
       rgbData.selectBox.h = json_real_value(SelBoxH);
-    // thm::Rect &r = rgbData.selectBox;
-    // DEBUG(string::f("Thm: r.x %f r.y %f r.w %f r.h %f",r.x, r.y, r.w, r.h).c_str());
+
+    auto slctViewX = json_object_get(rootJ, "SelectViewX");
+    if (slctViewX)
+      slctView.x = json_real_value(slctViewX);
+    auto slctViewY = json_object_get(rootJ, "SelectViewY");
+    if (slctViewY)
+      slctView.y = json_real_value(slctViewY);
+    auto slctViewW = json_object_get(rootJ, "SelectViewW");
+    if (slctViewW)
+      slctView.w = json_real_value(slctViewW);
+    auto slctViewH = json_object_get(rootJ, "SelectViewH");
+    if (slctViewH)
+      slctView.h = json_real_value(slctViewH);
+
+    auto pExistJsonData = json_object_get(rootJ, "existJsonData");
+    if (pExistJsonData)
+      existJsonData = json_boolean_value(pExistJsonData);
+    else
+      existJsonData = false;
   }
 };
-
+        
 struct PictogramDisplay : OpaqueWidget
 {
   Pictogram *module{nullptr};
   int imgHandle {0};
-  const int sizex {330};
-  const int sizey {330};
+  const int sizex {346};
+//  const int sizex{330};
+  const int sizey{330};
   thm::SelectBoxView boxView{};
 
   void onDragHover(const event::DragHover &e) override
@@ -194,6 +220,9 @@ struct PictogramDisplay : OpaqueWidget
     OpaqueWidget::drawLayer(args, layer);
     if (!module)
       return;
+    // If module is blank full size box would block mouse dragging!
+    box.pos = Vec(0,0); 
+    box.size = Vec(1,1);
     if (module->loading || layer != 1 || module->imagePath.empty())
       return;
     float width = sizex;
@@ -209,47 +238,51 @@ struct PictogramDisplay : OpaqueWidget
     float marginy = (parent->box.size.y - height) / 2;
     float zoomx = width / imagew;
     float zoomy = height / imageh;
+    float izx = imagew * zoomx;
+    float izy = imageh * zoomy;
     box.pos = Vec(marginx, marginy);
-    box.size = Vec(imagew * zoomx, imageh * zoomy);
+    box.size = Vec(izx, izy);
     nvgSave(args.vg);
     nvgBeginPath(args.vg);
     // Make sure image is created only once after it was loaded
     // with module->loadSample(...). DrawLayer runs in a loop
     // at FPS-speed e.g. 60 frames per second!
-    if (module->hasNewImage)
+    if (module->hasLoadedImage)
     {
       // Should not run outside this "if" statement. It's too slow for that!
       imgHandle = nvgCreateImage(args.vg, module->imagePath.c_str(), 0);
-//      boxView.moveTo(box.size.x / 2, box.size.y / 2);
-      adjustSelectBox(imagew, zoomx, zoomy);
-      module->hasNewImage = false;
+      if (!module->existJsonData)
+      {
+        boxView.setSize(30, 30);
+        boxView.moveTo(box.size.x / 2, box.size.y / 2);
+        module->existJsonData = true;
+      }else
+        boxView.setBox(module->slctView);
+      SetRgbDataSelectBox(imagew, zoomx, zoomy);
+      module->hasLoadedImage = false;
     }
-    NVGpaint imgPaint = nvgImagePattern(args.vg, 0, 0, imagew * zoomx, imageh * zoomy,
+    NVGpaint imgPaint = nvgImagePattern(args.vg, 0, 0, izx, izy,
                                         0, imgHandle, 1.0f);
-    nvgRect(args.vg, 0, 0, imagew * zoomx, imageh * zoomy);
+    nvgRect(args.vg, 0, 0, izx, izy);
     nvgFillPaint(args.vg, imgPaint);
     nvgFill(args.vg);
     boxView.draw(args);
     nvgClosePath(args.vg);
     nvgRestore(args.vg);
     // Adjusting the select box in module after moving or resizing
-    if(boxView.changed)
+    if (boxView.changed)
     {
-      adjustSelectBox(imagew, zoomx, zoomy);
+      module->slctView = boxView.getBox();
+      SetRgbDataSelectBox(imagew, zoomx, zoomy);
       boxView.changed = false;
     }
   }
-  void adjustSelectBox(float imagewidth, float zoomX, float zoomY){
-    thm::Rect &r = module->rgbData.selectBox;
-    if (module->hasNewImage)
-    {
-      thm::Rect r1 = module->rgbData.selectBox;
-      r1.zoom(1 / zoomX, 1 / zoomY);
-      boxView.setBox(r1);
-    }
-    module->rgbData.selectBox = boxView.getBox();
-    r.imagewidth = imagewidth;
-    r.zoom(zoomX, zoomY);
+  void SetRgbDataSelectBox(float imagewidth, float zx, float zy)
+  {
+    thm::Rect &rt = module->rgbData.selectBox;
+    rt = boxView.getBox();
+    rt.imagewidth = imagewidth;
+    rt.zoom(zx, zy);
     module->rgbData.resetPosition();
   }
 };
@@ -265,8 +298,6 @@ struct PictogramWidget : ModuleWidget
     setPanel(createPanel(asset::plugin(pluginInstance, "res/Pictogram.svg")));
     PictogramDisplay *display = new PictogramDisplay();
     display->module = myModule;
-    // display->box.pos = Vec(0, 0);  // Not setting this box blocks the hole module.
-    // display->box.size = Vec(1, 1); // Moving by dragging is then impossible :-/
     addChild(display);
     addChild(createWidget<ScrewSilver>(Vec(RACK_GRID_WIDTH, 0)));
     addChild(createWidget<ScrewSilver>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, 0)));

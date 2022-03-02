@@ -31,7 +31,7 @@ namespace thm
   //Rect object used by RGBData
   struct Rect 
   {
-    float x, y, w, h;
+    float x{0}, y{0}, w{50}, h{25};
     float imagewidth;
     void zoom(float zx, float zy){
       x /= zx;
@@ -51,26 +51,29 @@ namespace thm
   {
     RGB color{};
     Rect selectBox{};
-    //bool ready2GO{false};
     void clear()
     {
       vrgb.clear();
+      vrgb.reserve(0);
       yDelta = 0;
     }
     void addColor()
     {
       vrgb.emplace_back(color);
+      //vrgb.push_back(color);
     }
     void resetPosition()
     {
-      const Rect& r = selectBox;
       imgWidth = std::round(r.imagewidth);
+      rx = std::round(r.x);
+      ry = std::round(r.y);
       rw = std::round(r.w);
       rh = std::round(r.h);
       // Left upper pixel of the selectbox
-      pixelindex = std::round(r.x + (r.y * imgWidth));
+      pixelindex = rx + ry * imgWidth;
       // Right upper pixel of the selectbox
-      rightTop = std::round(r.x + rw + (r.y * imgWidth));
+      rightTop = pixelindex + rw;
+      rightPos = rightTop;
       yDelta = 0;
     }
     void resetPosition(float imageWidth)
@@ -78,24 +81,19 @@ namespace thm
       selectBox.imagewidth = imageWidth;
       resetPosition();
     }
-    // Walk through the vector inside the boundaries of the selectBox
+    //Navigate through the vector inside the boundaries of the selectBox
     void nextPixel() // called by module->process()
     {
-      // right position of r converted to 1D pixelindex
-      uint rright = rightTop + (imgWidth * yDelta);
-      // DEBUG(string::f("Thm: px %d rright %d yDelta %d", px, rright, yDelta).c_str());
-      if (pixelindex == rright) // Reached right position?
-      {
-        // Jump to left position in the next line
-        pixelindex = rright + imgWidth - rw;
-        if (++yDelta == rh){
-          //DEBUG(string::f("Thm If: px %d rright %d yDelta %d", pixelindex, rright, yDelta).c_str());
-          resetPosition();
-        }
-        return;
-      }
-      if (++pixelindex == vrgb.size())
+      //DEBUG(string::f("Thm: pixindex %d red %d", pixelindex, vrgb[pixelindex].r).c_str());
+      if (++pixelindex >= vrgb.size())
         resetPosition();
+      if (pixelindex == rightPos)
+      {
+        pixelindex += imgWidth - rw;
+        rightPos += imgWidth;
+        if (yDelta++ == rh)
+          resetPosition();
+      }
     }
     bool isEmpty()
     {
@@ -105,19 +103,23 @@ namespace thm
     {
       vrgb.reserve(size);
     }
-    const RGB& getColor() const
+    const RGB &getColor() const
     {
       return vrgb[pixelindex];
     }
 
-    private:
-      std::vector<RGB> vrgb{};
-      uint pixelindex{};
-      uint yDelta{};
-      uint rightTop{};
-      uint imgWidth{};
-      uint rw{};
-      uint rh{};
+  private:
+    std::vector<RGB> vrgb{};
+    const Rect &r = selectBox;
+    uint pixelindex{};
+    uint yDelta{};
+    uint rightTop{};
+    uint rightPos{};
+    uint imgWidth{};
+    uint rx{};
+    uint ry{};
+    uint rw{};
+    uint rh{};
   };
 
   // Calculate and hold rgb- and hsv values
@@ -136,13 +138,14 @@ namespace thm
       float min = std::min({r, g, b});
       float max = std::max({r, g, b});
       //Luminance in percent
-      lum = max + min / 2; 
+      lum = max + min / 2.f; 
       //Saturation in percent
-      if (lum <= 0.5)
+      if (lum <= 0.5f)
         sat = (max - min) / (max + min);
       else
-        sat = (max - min) / (2.0 - max - min);
-      // Grey tones. This avoids NaN issues
+        sat = (max - min) / (2.f - max - min);
+      sat = clamp(sat, 0.f, 1.f);
+      // Grey hue. This avoids NaN issues
       if (r == g && g == b && b == r)
       {
         hue = 0.f;
@@ -173,13 +176,14 @@ namespace thm
     {
       float w = args.clipBox.size.x;
       float h = args.clipBox.size.y;
-      // if(w<=1 || h<=1) //Seems to be true if draw is called the very first time?!
-      //   return;
+      if(w<=1 || h<=1) //Seems to be true if draw is called the very first time?!
+        return;
       // Selection should stay inside the parent box
       if (r.x + r.w >= w) r.x = w - r.w;
       if (r.y + r.h >= h) r.y = h - r.h;
       if (r.x < 0) r.x = 0;
       if (r.y < 0) r.y = 0;
+      //DEBUG(string::f("Thm r.x: %f r.y: %f", r.x, r.y).c_str());
       drawBox(args, Grey, mStrokewidth, 0.f);
       drawBox(args, DGrey, mStrokewidth, mStrokewidth);
     }
@@ -193,8 +197,10 @@ namespace thm
     }
     void moveTo(float newx, float newy)
     {
-      r.x = newx - r.w;
-      r.y = newy - r.h;
+      // r.x = newx - r.w;
+      // r.y = newy - r.h;
+      r.x = newx;
+      r.y = newy;
     }
     void SetEndPoint(float x, float y)
     {
@@ -204,9 +210,19 @@ namespace thm
       if (r.w < 1) r.w = 1;
       if (r.h < 1) r.h = 1;
     }
+    void setSize (float width, float height)
+    {
+      r.w = width;
+      r.h = height;
+    }
     void setBox (const thm::Rect& rp)
     {
-      rect = rp;
+      //r = rp;
+      r.x = rp.x;
+      r.y = rp.y;
+      r.w = rp.w;
+      r.h = rp.h;
+      r.imagewidth = rp.imagewidth;
     }
     const Rect& getBox() const
     {
