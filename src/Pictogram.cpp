@@ -69,8 +69,8 @@ struct Pictogram : Module
   Pictogram()
   {
     config(PARAMS_LEN, INPUTS_LEN, OUTPUTS_LEN, LIGHTS_LEN);
-    configParam(SCALE_PARAM, 0.f, 1.f, 0.5f, "Scale", " %", 0.f, 100.f, 0.f);
-    configParam(OFFSET_PARAM, -5.f, 5.f, 0.f, "Offset", " V");
+    configParam(SCALE_PARAM, 1.f, 10.f, 1.f, "Scale", " V");
+    configParam(OFFSET_PARAM, -5.f, 5.f, 0.5f, "Offset", " V");
     configInput(RESET_INPUT, "Reset");
     configInput(CLOCK_INPUT, "Clock");
     configOutput(RED_OUTPUT, "Red");
@@ -99,12 +99,18 @@ struct Pictogram : Module
 
     float scale = params[SCALE_PARAM].getValue();
     float offset = params[OFFSET_PARAM].getValue();
-    outputs[RED_OUTPUT].setVoltage(red * scale + offset);
-    outputs[GREEN_OUTPUT].setVoltage(green * scale + offset);
-    outputs[BLUE_OUTPUT].setVoltage(blue * scale + offset);
-    outputs[HUE_OUTPUT].setVoltage(hue * scale + offset);
-    outputs[SAT_OUTPUT].setVoltage(sat * scale + offset);
-    outputs[LUM_OUTPUT].setVoltage(lum * scale + offset);
+
+    auto transform = [&](float data)
+    {
+      float halfscl = scale / 2.f;
+      return rescale(data, 0.f, 10.f, halfscl, -halfscl) + offset;
+    };
+    outputs[RED_OUTPUT].setVoltage(transform(red));
+    outputs[GREEN_OUTPUT].setVoltage(transform(green));
+    outputs[BLUE_OUTPUT].setVoltage(transform(blue));
+    outputs[HUE_OUTPUT].setVoltage(transform(hue));
+    outputs[SAT_OUTPUT].setVoltage(transform(sat));
+    outputs[LUM_OUTPUT].setVoltage(transform(lum));
   }
   void loadSample(std::string path)
   {
