@@ -6,7 +6,7 @@ to voltage values in VCV-Rack.
 
 <pre>Preview:                               Licence: GPL v3 or later</pre>
 <p align="center">
-   <img src="!https://github.com/Thomas0105/Thoms/blob/master/images/Pictogram.png">
+   <img src="https://github.com/Thomas0105/Thoms/blob/master/images/Pictogram.png">
 </p>
 <p align="left">
    The preview shows Pictogram with an image loaded.
