@@ -26,6 +26,10 @@
 #include "plugin.hpp"
 #include <cmath>
 
+#ifdef ARCH_WIN
+using uint = unsigned int;
+#endif
+
 namespace thm
 {
   //Rect object used by RGBData
