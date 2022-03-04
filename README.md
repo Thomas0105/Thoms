@@ -31,13 +31,13 @@ to voltage values in VCV-Rack.
    <b>Offset knob </b>adjusts an offset value for the scale (-5V...5V)<br>
    <pre>
          Bipolar examples:
-         -1V to 1V; Scale = 2V, Offset = 0V
-         -3V to 3V; Scale = 6V, Offset = 0V
-         -2V to 4V; Scale = 6V, Offset = 1V; Scale(6V) / 2 = 3V; Offset(1V) - 3V = -2V; 1V + 3V = 4V
+   -1V to 1V; Scale = 2V, Offset = 0V
+   -3V to 3V; Scale = 6V, Offset = 0V
+   -2V to 4V; Scale = 6V, Offset = 1V; Scale(6V) / 2 = 3V; Offset(1V) - 3V = -2V; 1V + 3V = 4V
          Unipolar examples:
-         0V to 1V; Scale = 1V, Offset = 0.5V; Scale(1V) / 2 = Offset(0.5V); 0.5V - 0.5V = 0V; 0.5V + 0.5V = 1V
-         0V to 3V; Scale = 3V, Offset = 1.5V;
-         0V to 8V; Scale = 8V, Offset = 4.0V
+   0V to 1V; Scale = 1V, Offset = 0.5V; Scale(1V) / 2 = Offset(0.5V); 0.5V - 0.5V = 0V; 0.5V + 0.5V = 1V
+   0V to 3V; Scale = 3V, Offset = 1.5V;
+   0V to 8V; Scale = 8V, Offset = 4.0V
    </pre>
    <b>Red </b>part of a pixel converted to Control Voltage<br>
    <b>Green </b>part of a pixel converted to CV<br>
