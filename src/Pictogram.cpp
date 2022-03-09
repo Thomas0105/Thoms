@@ -207,20 +207,22 @@ struct PictogramDisplay : OpaqueWidget
   const int sizey{330};
   thm::SelectBoxView boxView{};
 
-  void onDragHover(const event::DragHover &e) override
-  { 
-    OpaqueWidget::onDragHover(e);
-    int modKeys = APP->window->getMods();
-    bool isCtrl = (modKeys & GLFW_MOD_CONTROL) == GLFW_MOD_CONTROL;
-    bool isShift = (modKeys & GLFW_MOD_SHIFT) == GLFW_MOD_SHIFT;
-    if (isCtrl)
-      boxView.SetEndPoint(e.pos.x, e.pos.y);
-    //Without it, dragging a cable will move the box.
+  void onHoverKey(const HoverKeyEvent& e) override 
+  {
+    OpaqueWidget::onHoverKey(e);
+    int modKey = e.mods;
+    int key = e.key;
+    bool isShift = (modKey & GLFW_MOD_SHIFT) == GLFW_MOD_SHIFT;
+    if (isShift && key == GLFW_KEY_SPACE)
+      return;
+    int w = boxView.getBox().w / 2;
+    int h = boxView.getBox().h / 2;
     if (isShift)
-      boxView.moveTo(e.pos.x, e.pos.y);
+      boxView.moveTo(e.pos.x-w, e.pos.y-h);
+    if(key == GLFW_KEY_SPACE)
+      boxView.SetEndPoint(e.pos.x, e.pos.y);
     boxView.changed = true;
   }
-  
   void drawLayer(const DrawArgs& args, int layer) override
   {
     OpaqueWidget::drawLayer(args, layer);

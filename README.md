@@ -23,7 +23,7 @@ to voltage values in VCV-Rack.
    or VCO with a rectangle signal output will do.<br>
    <br>
    After loading a picture a <b>select box</b> appears in the middle. The box serves as a<br>
-   tool to choose pixels from the image. <b>Shift-drag</b> moves the box around and <b>Ctrl-drag</b><br>
+   tool to choose pixels from the image. <b>Shift-drag</b> moves the box around and <b>Space-drag</b><br>
    resizes the box.<br>
    <br>
    <b>Outputs</b> are on the right side:<br>
